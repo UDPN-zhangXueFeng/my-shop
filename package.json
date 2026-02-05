@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "convert:jd": "node scripts/convert-jd-xls-to-json.js"
+    "convert:jd": "node scripts/convert-jd-xls-to-json.js",
+    "convert:jd:csv": "node scripts/convert-jd-csv-to-json.js"
   },
   "dependencies": {
+    "csv-parse": "^6.1.0",
+    "iconv-lite": "^0.7.2",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
