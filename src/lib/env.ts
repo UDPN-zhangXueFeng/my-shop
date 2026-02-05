@@ -60,6 +60,11 @@ export const loadTbEnv = (): TbEnv => {
     TB_APP_SECRET: process.env.TB_APP_SECRET,
     TB_ADZONE_ID: process.env.TB_ADZONE_ID,
     TB_PID: process.env.TB_PID,
+    // 京东可选项占位，避免类型缺失 // JD optional placeholders to satisfy typing
+    JD_APP_KEY: process.env.JD_APP_KEY,
+    JD_APP_SECRET: process.env.JD_APP_SECRET,
+    JD_SITE_ID: process.env.JD_SITE_ID,
+    JD_POSITION_ID: process.env.JD_POSITION_ID,
   };
 
   TB_REQUIRED_KEYS.forEach((key) => {
