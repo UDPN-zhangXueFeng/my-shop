@@ -1,65 +1,168 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+
+type Item = {
+  title: string;
+  price: string;
+  finalPrice: string;
+  mainImage: string;
+  promoUrl: string;
+  detailUrl: string;
+  monthlySales: string;
+  commissionRate: string;
+  commission: string;
+  couponUrl?: string;
+};
+
+type SortKey = "monthlySales" | "price";
+type SortDir = "asc" | "desc";
 
 export default function Home() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("monthlySales");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const fetchItems = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/jd/static`);
+      const data = await res.json();
+      if (!data.ok) {
+        setError(data.message || "获取失败");
+        setItems([]);
+        return;
+      }
+      setItems(data.items || []);
+    } catch (err) {
+      setError((err as Error).message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="min-h-screen bg-white text-zinc-900">
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <h1 className="text-2xl font-bold">京东离线选品展示</h1>
+        <p className="mt-2 text-sm text-zinc-600">
+          当前数据来源：public/data/jd_items.json（请先运行 pnpm convert:jd 将最新导出转换为 JSON）。
+        </p>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
+          <span>排序：</span>
+          <button
+            className={`rounded-full border px-3 py-1 transition ${
+              sortKey === "monthlySales" ? "border-black bg-black text-white" : "border-zinc-200"
+            }`}
+            onClick={() => setSortKey("monthlySales")}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            按销量
+          </button>
+          <button
+            className={`rounded-full border px-3 py-1 transition ${
+              sortKey === "price" ? "border-black bg-black text-white" : "border-zinc-200"
+            }`}
+            onClick={() => setSortKey("price")}
           >
-            Documentation
-          </a>
+            按单价
+          </button>
+          <button
+            className="rounded-full border px-3 py-1 transition border-zinc-200"
+            onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
+          >
+            {sortDir === "desc" ? "↓ 降序" : "↑ 升序"}
+          </button>
         </div>
-      </main>
+
+        {loading && <p className="mt-4 text-sm text-zinc-600">加载中…</p>}
+        {error && <p className="mt-6 text-sm text-red-600">{error}</p>}
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {items
+            .slice()
+            .sort((a, b) => {
+              const dir = sortDir === "desc" ? -1 : 1;
+              if (sortKey === "monthlySales") {
+                const av = Number(a.monthlySales) || 0;
+                const bv = Number(b.monthlySales) || 0;
+                return (av - bv) * dir * -1;
+              }
+              if (sortKey === "price") {
+                const av = Number(a.finalPrice || a.price) || 0;
+                const bv = Number(b.finalPrice || b.price) || 0;
+                return (av - bv) * dir;
+              }
+              return 0;
+            })
+            .map((item) => (
+            <div key={item.promoUrl} className="rounded-xl border border-zinc-200 p-4 shadow-sm">
+              <div className="text-xs font-semibold uppercase text-orange-600">京东</div>
+              {item.mainImage && (
+                <img
+                  src={item.mainImage}
+                  alt={item.title}
+                  className="mt-2 h-40 w-full rounded-lg object-cover"
+                />
+              )}
+              <h3 className="mt-3 line-clamp-2 text-sm font-medium text-zinc-900">{item.title}</h3>
+              <p className="mt-2 text-xs text-zinc-500">月销：{item.monthlySales || "-"}</p>
+              <div className="mt-2 flex flex-wrap items-baseline gap-2 text-sm">
+                <span className="text-base font-semibold text-red-600">
+                  到手价：¥{Number(item.finalPrice || item.price || 0).toFixed(2)}
+                </span>
+                {item.price && (
+                  <span className="text-sm text-zinc-500">
+                    （原价¥{Number(item.price).toFixed(2)}
+                    {item.finalPrice && Number(item.price) > Number(item.finalPrice) && (
+                      <>，领券立减¥{(Number(item.price) - Number(item.finalPrice)).toFixed(2)}</>
+                    )}
+                    ）
+                  </span>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 text-sm font-medium">
+                <a
+                  href={item.promoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex w-full justify-center rounded-lg bg-black px-3 py-2 text-white hover:bg-zinc-800"
+                >
+                  去购买
+                </a>
+                {item.couponUrl && (
+                  <a
+                    href={item.couponUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full justify-center rounded-lg border border-orange-500 px-3 py-2 text-orange-600 hover:bg-orange-50"
+                  >
+                    领券链接
+                  </a>
+                )}
+                {item.detailUrl && (
+                  <a
+                    href={item.detailUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex w-full justify-center rounded-lg border border-zinc-200 px-3 py-2 text-zinc-700 hover:bg-zinc-50"
+                  >
+                    商品详情页
+                  </a>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
