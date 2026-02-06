@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "convert:jd": "node scripts/convert-jd-xls-to-json.js",
-    "convert:jd:csv": "node scripts/convert-jd-csv-to-json.js"
+    "convert:jd:csv": "node scripts/convert-jd-csv-to-json.js",
+    "jd:images": "node scripts/jd-fetch-images.js"
   },
   "dependencies": {
     "csv-parse": "^6.1.0",
