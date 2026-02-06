@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type Item = {
   title: string;
@@ -25,6 +25,9 @@ export default function Home() {
   const [sortKey, setSortKey] = useState<SortKey>("monthlySales");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(0);
+  const [pageSize, setPageSize] = useState(9);
 
   const formatPrice = (item: Item) => {
     const value = Number(item.finalPrice || item.price);
@@ -113,6 +116,56 @@ export default function Home() {
       window.removeEventListener("resize", resize);
     };
   }, []);
+
+  useEffect(() => {
+    const calcPageSize = () => {
+      const isMobile = window.innerWidth < 640;
+      const isTablet = window.innerWidth >= 640 && window.innerWidth < 1024;
+      setPageSize(isMobile ? 4 : isTablet ? 6 : 9);
+    };
+    calcPageSize();
+    window.addEventListener("resize", calcPageSize);
+    return () => window.removeEventListener("resize", calcPageSize);
+  }, []);
+
+  useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [pageSize, items.length]);
+
+  const sortedItems = useMemo(() => {
+    return items.slice().sort((a, b) => {
+      const dir = sortDir === "desc" ? -1 : 1;
+      if (sortKey === "monthlySales") {
+        const av = Number(a.monthlySales) || 0;
+        const bv = Number(b.monthlySales) || 0;
+        return (av - bv) * dir * -1;
+      }
+      if (sortKey === "price") {
+        const av = Number(a.finalPrice || a.price) || 0;
+        const bv = Number(b.finalPrice || b.price) || 0;
+        return (av - bv) * dir;
+      }
+      return 0;
+    });
+  }, [items, sortDir, sortKey]);
+
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node) return;
+    if (visibleCount >= sortedItems.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + pageSize, sortedItems.length));
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [pageSize, sortedItems.length, visibleCount]);
 
   const marqueeItems = (items.length ? items : [{ title: "京东精选好物", promoUrl: "#" } as Item]).slice(0, 8);
 
@@ -208,23 +261,7 @@ export default function Home() {
         {error && <p className="mt-6 text-sm text-red-600">{error}</p>}
 
         <section className="mt-8 grid gap-4 sm:gap-5 lg:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3">
-          {items
-            .slice()
-            .sort((a, b) => {
-              const dir = sortDir === "desc" ? -1 : 1;
-              if (sortKey === "monthlySales") {
-                const av = Number(a.monthlySales) || 0;
-                const bv = Number(b.monthlySales) || 0;
-                return (av - bv) * dir * -1;
-              }
-              if (sortKey === "price") {
-                const av = Number(a.finalPrice || a.price) || 0;
-                const bv = Number(b.finalPrice || b.price) || 0;
-                return (av - bv) * dir;
-              }
-              return 0;
-            })
-            .map((item) => (
+          {sortedItems.slice(0, visibleCount).map((item) => (
               <div
                 key={item.promoUrl}
                 className="group overflow-hidden rounded-[28px] border border-white/60 bg-white/95 shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(15,23,42,0.12)]"
@@ -309,6 +346,10 @@ export default function Home() {
               </div>
             ))}
         </section>
+        <div ref={loadMoreRef} className="h-10" />
+        {visibleCount < sortedItems.length && (
+          <p className="mt-4 text-center text-xs text-zinc-500">加载更多商品…</p>
+        )}
       </main>
     </div>
   );
