@@ -24,6 +24,7 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("monthlySales");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [searchQuery, setSearchQuery] = useState("");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -130,10 +131,16 @@ export default function Home() {
 
   useEffect(() => {
     setVisibleCount(pageSize);
-  }, [pageSize, items.length]);
+  }, [pageSize, items.length, searchQuery]);
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchQuery.trim().toLowerCase();
+    if (!keyword) return items;
+    return items.filter((item) => item.title.toLowerCase().includes(keyword));
+  }, [items, searchQuery]);
 
   const sortedItems = useMemo(() => {
-    return items.slice().sort((a, b) => {
+    return filteredItems.slice().sort((a, b) => {
       const dir = sortDir === "desc" ? -1 : 1;
       if (sortKey === "monthlySales") {
         const av = Number(a.monthlySales) || 0;
@@ -147,7 +154,7 @@ export default function Home() {
       }
       return 0;
     });
-  }, [items, sortDir, sortKey]);
+  }, [filteredItems, sortDir, sortKey]);
 
   useEffect(() => {
     const node = loadMoreRef.current;
@@ -254,6 +261,16 @@ export default function Home() {
           >
             {sortDir === "desc" ? "↓ 降序" : "↑ 升序"}
           </button>
+          <div className="order-last flex w-full flex-1 basis-full items-center sm:order-none sm:w-auto sm:basis-auto">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="搜索商品名称"
+              className="w-full rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm text-zinc-800 placeholder:text-zinc-400 shadow-sm focus:border-[#EB2A2F] focus:outline-none focus:ring-2 focus:ring-[#EB2A2F]/20"
+              aria-label="搜索商品"
+            />
+          </div>
 
         </section>
 
